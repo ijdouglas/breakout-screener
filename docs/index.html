@@ -2,9 +2,44 @@
 <html>
   <head><meta charset="utf-8"><title>Plot Gallery</title></head>
   <body>
-    <h1>Welcome to my Plot Gallery</h1>
-    <!-- we’ll wire in the viewer here later -->
-    <div id="plot-container"></div>
-    <button id="next-btn">Next</button>
+    <h1>My Plot Gallery</h1>
+    <div id="plot-container" style="width:100%; height:600px;"></div>
+    <button id="prev-btn">◀ Previous</button>
+    <button id="next-btn">Next ▶</button>
+  
+    <script>
+      let files = [], current = 0;
+  
+      // 1) Grab the manifest
+      fetch('plots/manifest.json')
+        .then(r => r.json())
+        .then(data => {
+          files = data;
+          if (!files.length) throw Error("No plots found");
+          showPlot(0);
+        });
+  
+      // 2) Render the plot at index i
+      function showPlot(i) {
+        const container = document.getElementById('plot-container');
+        container.innerHTML =
+          `<iframe src="plots/${files[i]}" 
+                   width="100%" height="100%" frameborder="0">
+           </iframe>`;
+      }
+  
+      // 3) Wire up buttons
+      document.getElementById('next-btn')
+        .addEventListener('click', () => {
+          current = (current + 1) % files.length;
+          showPlot(current);
+        });
+  
+      document.getElementById('prev-btn')
+        .addEventListener('click', () => {
+          current = (current - 1 + files.length) % files.length;
+          showPlot(current);
+        });
+    </script>
   </body>
 </html>
