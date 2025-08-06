@@ -1,48 +1,80 @@
 <!DOCTYPE html>
 <html>
-  <head><meta charset="utf-8"><title>Breakout Screener</title></head>
-  <body>
-    <div id="plot-container" style="width:100%; height:600px;"></div>
-    <div id="plot-info"></div>
-    <button id="prev-btn">◀ Previous</button>
-    <button id="next-btn">Next ▶</button>
-  
-    <script>
-      let files = [], current = 0;
-  
-      // 1) Grab the manifest
-      fetch('plots/manifest.json')
+<head>
+  <meta charset="utf-8">
+  <title>Breakout Screener</title>
+</head>
+<body>
+  <h1>Breakout Screener</h1>
+
+  <!-- dropdown will be built dynamically -->
+  <label for="set-select">Choose plot set:</label>
+  <select id="set-select"></select>
+
+  <div id="plot-container" style="width:100%; height:600px;"></div>
+  <div id="plot-info" style="margin:0.5em 0;"></div>
+  <button id="prev-btn">◀ Previous</button>
+  <button id="next-btn">Next ▶</button>
+
+  <script>
+    let folders = [], files = [], currentFolder = '', current = 0;
+    const select = document.getElementById('set-select');
+    const info   = document.getElementById('plot-info');
+    const container = document.getElementById('plot-container');
+
+    // Fetch the list of plot folders
+    fetch('plot_sets.json')
+      .then(r => r.json())
+      .then(data => {
+        folders = data;
+        // build <option>s
+        folders.forEach(f => {
+          const opt = document.createElement('option');
+          opt.value = f;
+          opt.textContent = f;
+          select.appendChild(opt);
+        });
+        // load the first one
+        loadFolder(folders[0]);
+      })
+      .catch(console.error);
+
+    // load a folder’s manifest and show plot #0
+    function loadFolder(folder) {
+      currentFolder = folder;
+      current = 0;
+      fetch(encodeURI(folder + '/manifest.json'))
         .then(r => r.json())
-        .then(data => {
-          files = data;
-          if (!files.length) throw Error("No plots found");
+        .then(arr => {
+          files = arr;
+          if (!files.length) throw new Error('No plots in ' + folder);
           showPlot(0);
-        });
-  
-      // 2) Render the plot at index i
-      function showPlot(i) {
-        const container = document.getElementById('plot-container');
-        container.innerHTML =
-          `<iframe src="plots/${files[i]}" 
-                   width="100%" height="100%" frameborder="0">
-           </iframe>`;
-        // Show plot info
-        const info = document.getElementById('plot-info');
-        info.textContent = `Plot ${i + 1} of ${files.length}`;
-      }
-  
-      // 3) Wire up buttons
-      document.getElementById('next-btn')
-        .addEventListener('click', () => {
-          current = (current + 1) % files.length;
-          showPlot(current);
-        });
-  
-      document.getElementById('prev-btn')
-        .addEventListener('click', () => {
-          current = (current - 1 + files.length) % files.length;
-          showPlot(current);
-        });
-    </script>
-  </body>
+        })
+        .catch(console.error);
+    }
+
+    // show plot i from currentFolder
+    function showPlot(i) {
+      const path = encodeURI(currentFolder + '/' + files[i]);
+      container.innerHTML = `<iframe src="${path}"
+                                   width="100%" height="100%"
+                                   frameborder="0">
+                             </iframe>`;
+      info.textContent = `Plot ${i+1} of ${files.length} (${currentFolder})`;
+    }
+
+    // wiring
+    select.addEventListener('change', e => loadFolder(e.target.value));
+    document.getElementById('next-btn')
+      .addEventListener('click', () => {
+        current = (current + 1) % files.length;
+        showPlot(current);
+      });
+    document.getElementById('prev-btn')
+      .addEventListener('click', () => {
+        current = (current - 1 + files.length) % files.length;
+        showPlot(current);
+      });
+  </script>
+</body>
 </html>
